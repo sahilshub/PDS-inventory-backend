@@ -414,9 +414,11 @@ def stock_in():
     db.session.add(block)
 
     # Save all codes to CSV
-    os.makedirs("generated_codes", exist_ok=True)
+    documents_path = os.path.expanduser("~/Documents")
+    target_folder = os.path.join(documents_path, "generated_codes")
+    os.makedirs(target_folder, exist_ok=True)
     filename = f"stockin_codes_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.csv"
-    filepath = os.path.join("generated_codes", filename)
+    filepath = os.path.join(target_folder, filename)
 
     with open(filepath, "w", newline="") as f:
         writer = csv.writer(f)
@@ -424,7 +426,7 @@ def stock_in():
         writer.writerows(all_pack_codes)
 
     db.session.commit()
-    return make_response({'message': 'Stock added under one batch. Pack codes generated.', 'file': filepath}, 200)
+    return make_response({'message': 'Stock added under one batch.\n Check Documents folder for generated pack codes', 'file': filepath}, 200)
 
 
 @main.route('/schedule_stock_out', methods=['POST'])
