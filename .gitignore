@@ -6,4 +6,3 @@ venv/
 *.db
 generated_codes/
 instance/
-*.json
