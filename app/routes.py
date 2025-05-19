@@ -1028,10 +1028,12 @@ def handle_track_vehicle(tid):
             deviation_alert = False
             break
 
+    admin = User.query.filter_by(role='admin').first()
+
     if deviation_alert and vehicle.status != "alert_sent":
         send_email(
             subject=f"Vehicle {vehicle.vehicle_id} deviated!",
-            recipient=[os.environ.get('MAIL_USERNAME')],
+            recipient=[admin.email],
             body=f"""Vehicle {vehicle.vehicle_id} allocated for 
             Shop {shop.name}-{shop.location} deviated at {location.lat}, {location.lng}\n
             Start Tracking: {BASE_URL}/track/{tid}
@@ -1043,7 +1045,7 @@ def handle_track_vehicle(tid):
     if distance_to_destination < 0.1 and vehicle.status != "at_pds":
         send_email(
             subject=f"Vehicle {vehicle.vehicle_id} reached!",
-            recipient=[shop.owner, os.environ.get('MAIL_USERNAME')],
+            recipient=[shop.owner, admin.email],
             body=f"Vehicle {vehicle.vehicle_id} reached your {shop.name} - {shop.location} PDS Shop/n/nRegards,/nSmartPDS"
         )
         vehicle.status = "at_pds"

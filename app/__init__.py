@@ -21,7 +21,7 @@ def create_app():
         MAIL_PASSWORD=os.getenv('MAIL_PASSWORD'),
         MAIL_USE_TLS=True,
         MAIL_USE_SSL=False,
-        SQLALCHEMY_DATABASE_URI='sqlite:///pds_inventory2.db',
+        SQLALCHEMY_DATABASE_URI=os.getenv('DATABASE_URI'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SCHEDULER_API_ENABLED=True
     )
