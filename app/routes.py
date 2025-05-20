@@ -4,6 +4,8 @@ import csv
 import json
 import jwt
 import hashlib
+import time
+import pytz
 import app.models as models
 from app.extensions import *
 from flask_mail import Message
@@ -18,8 +20,6 @@ from google.generativeai import GenerativeModel
 from flask import Blueprint, request, make_response, url_for, Response, jsonify
 from sqlalchemy import func, desc
 from datetime import datetime
-import time
-import pytz
 from flask import Flask
 from geopy.distance import geodesic
 
@@ -774,15 +774,13 @@ def get_all_model_data(limit=20):
     return db_data
 
 
-model = GenerativeModel("gemini-1.5-flash")
-
-
 def ask_gemini_over_db(question):
     db_data = get_all_model_data()
     json_data = json.dumps(db_data, indent=2)
+    model = GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""
-    You are a smart assistant working for the Tamil Nadu Public Distribution System (PDS) Inventory Management System.
+    You are a smart assistant working for the Public Distribution System (PDS) Inventory Management System.
 
     Your job is to assist registered inventory officials and PDS shop representatives by providing helpful, 
     user-friendly answers based on real-time supply and stock data.
@@ -869,6 +867,7 @@ def dashboard():
         "total_capacity": '10,00,000',
         "inventory_fill_percentage": round(inventory_fill_percentage)
     }, 200)
+
 
 @main.route("/item_quantity_summary", methods=["GET"])
 def item_quantity_summary():
