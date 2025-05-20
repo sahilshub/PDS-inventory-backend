@@ -1,3 +1,4 @@
+# Packages
 import os
 import csv
 import json
@@ -33,6 +34,7 @@ s = URLSafeTimedSerializer(os.getenv('SECRET_KEY'))
 JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 BASE_URL = os.getenv('BASE_FRONTEND_URL')
 
+# Authenctication
 def verify_token():
     token = request.cookies.get('cookie')
 
@@ -123,6 +125,32 @@ def signup():
     return make_response({'message': 'User created, please check your email to verify your account'}, 201)
 
 
+@main.route('/signin', methods=['POST'])
+def signin():
+    data = request.get_json(force=True)
+    given_email = data.get('email')
+    given_password = data.get('password')
+
+    user = User.query.filter_by(email=given_email).first()
+
+    if not user or not check_password_hash(user.password, given_password):
+        return make_response({'message': 'Invalid credentials'}, 400)
+
+    if not user.verified:
+        return make_response({'message': 'Email not verified'}, 400)
+    
+    payload = {
+        'user': user.email,
+        'exp': datetime.utcnow() + timedelta(minutes=30),
+        'role': user.role 
+    }
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm='HS256')
+
+    response = make_response({'message': 'Logged in successfully', 'token': token, 'role':user.role, 'email': user.email}, 200)
+
+    return response
+
+
 @main.route("/ask", methods=["POST"])
 def ask_full_db():
     payload = request.get_json(force=True)
@@ -154,32 +182,6 @@ def confirm_email(token):
     Response(json.dumps({'message': 'Email verified successfully'}))
     return f"<center><h1>Your email has been verified successfully</h1><p>Now, you can <a href='{BASE_URL}/login'>SignIn</a></p></center>"
     
-
-@main.route('/signin', methods=['POST'])
-def signin():
-    data = request.get_json(force=True)
-    given_email = data.get('email')
-    given_password = data.get('password')
-
-    user = User.query.filter_by(email=given_email).first()
-
-    if not user or not check_password_hash(user.password, given_password):
-        return make_response({'message': 'Invalid credentials'}, 400)
-
-    if not user.verified:
-        return make_response({'message': 'Email not verified'}, 400)
-    
-    payload = {
-        'user': user.email,
-        'exp': datetime.utcnow() + timedelta(minutes=30),
-        'role': user.role 
-    }
-    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm='HS256')
-
-    response = make_response({'message': 'Logged in successfully', 'token': token, 'role':user.role, 'email': user.email}, 200)
-
-    return response
-
 
 @main.route('/add_item', methods=['POST'])
 def add_item():
@@ -758,7 +760,7 @@ def serialize_instance(obj):
     return result
 
 
-def get_all_model_data(limit=10):
+def get_all_model_data(limit=20):
     model_classes = get_all_model_classes()
     db_data = {}
 
@@ -780,19 +782,36 @@ def ask_gemini_over_db(question):
     json_data = json.dumps(db_data, indent=2)
 
     prompt = f"""
-    You are a smart assistant, who works for PDS inventory management system in tamilnadu.
-    we are getting and storing stocks as batches from registered godowns to supply
-    registered PDS shops in some scheduled date.
+    You are a smart assistant working for the Tamil Nadu Public Distribution System (PDS) Inventory Management System.
 
-    you are probably responding to inventory or pds_shop officials.
+    Your job is to assist registered inventory officials and PDS shop representatives by providing helpful, 
+    user-friendly answers based on real-time supply and stock data.
 
-    Be aware of inputs and don't share any confidential informations
-    such as how app stores data, about DB structure, what are all the columns used.
+    Strict Privacy Rules — DO NOT DO THE FOLLOWING:
 
-    Here's the real database data:
+        Never reveal or describe internal database structure.
+
+        Never expose table names, column names, or code-level implementation.
+
+        Never mention how data is stored, retrieved, or processed.
+
+        Never reveal or reference backend logic, APIs, or storage details.
+
+    What You Know:
+
+        Stocks are delivered as batches from registered godowns to registered PDS shops.
+
+        Deliveries are scheduled in advance and tracked.
+
+        You are given access to interpreted live data.
+
+    Now, using the following data:
+
     {json_data}
 
-    Answer simply to this: {question}
+    Answer the question below in a friendly, clear, and non-technical way:
+
+    {question}
     """
 
     response = model.generate_content(prompt)
@@ -950,14 +969,6 @@ def get_users():
 @main.route('/items', methods=['GET'])
 def get_items():
     items = Item.query.all()
-    sample = [
-        {"id": 1, "name": "Rice"},
-        {"id": 2, "name": "Sugar"},
-        {"id": 3, "name": "Wheat"},
-    ]
-    if len(items) == 0:
-        items = sample
-
     return jsonify([{'id': i.id, 'name': i.name.capitalize()} for i in items]), 200
 
 
